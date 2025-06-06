@@ -177,7 +177,7 @@ const TransactionForm = ({
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    {/* Currency icon removed */}
                     <Input
                       id="amount"
                       type="number"

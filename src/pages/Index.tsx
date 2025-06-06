@@ -46,7 +46,8 @@ const Index = () => {
     useState<Transaction | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [activeView, setActiveView] = useState("overview");
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger state
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]); // State to hold transactions
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,13 +55,48 @@ const Index = () => {
     const theme = localStorage.getItem("theme");
     if (authStatus === "true") {
       setIsAuthenticated(true);
-      // No need to load transactions here anymore, TransactionList fetches its own
     }
     if (theme === "dark") {
       setDarkMode(true);
       document.documentElement.classList.add("dark");
     }
   }, []);
+
+  // Effect to fetch transactions when isAuthenticated or refreshTrigger changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      const fetchTransactions = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          // Handle case where token is missing after authentication
+          setIsAuthenticated(false);
+          return;
+        }
+        try {
+          const response = await fetch("/api/expenses", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setTransactions(data); // Update transactions state
+          } else {
+            // Handle error fetching transactions (e.g., token expired)
+            console.error("Failed to fetch transactions:", response.statusText);
+            // Optionally log out the user or show an error message
+          }
+        } catch (error) {
+          console.error("Error fetching transactions:", error);
+          // Handle network errors etc.
+        }
+      };
+
+      fetchTransactions();
+    } else {
+      setTransactions([]); // Clear transactions if not authenticated
+    }
+  }, [isAuthenticated, refreshTrigger]); // Depend on isAuthenticated and refreshTrigger
 
   const toggleTheme = () => {
     setDarkMode(!darkMode);
@@ -252,7 +288,9 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="transactions">
+                  {/* TransactionList now receives transactions from state */}
                   <TransactionList
+                    transactions={transactions}
                     onEdit={setEditingTransaction}
                     showActions={true}
                     refreshTrigger={refreshTrigger} // Pass refresh trigger
@@ -260,8 +298,8 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="bank-comparison">
-                  {/* BankComparison will also need to fetch data */}
-                  <BankComparison transactions={[]} />
+                  {/* BankComparison now receives transactions from state */}
+                  <BankComparison transactions={transactions} />
                 </TabsContent>
               </Tabs>
             </div>

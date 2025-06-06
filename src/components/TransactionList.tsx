@@ -173,7 +173,7 @@ const TransactionList = ({
   };
 
   const formatAmount = (amount: number, type: string) => {
-    const formatted = `$${amount.toFixed(2)}`;
+    const formatted = `₹${amount.toFixed(2)}`;
     return type === "income" ? `+${formatted}` : `-${formatted}`;
   };
 
