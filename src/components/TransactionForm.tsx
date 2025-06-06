@@ -1,41 +1,74 @@
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, DollarSign, Tag, FileText } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, DollarSign, Tag, FileText } from "lucide-react";
 
 interface Transaction {
   id: string;
   date: string;
   amount: number;
   category: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   description: string;
 }
 
 interface TransactionFormProps {
   transaction?: Transaction;
-  onSubmit: (transaction: Omit<Transaction, 'id'> | Transaction) => void;
+  onSubmit: (transaction: Omit<Transaction, "id"> | Transaction) => void;
   onClose: () => void;
 }
 
 const categories = {
-  income: ['Salary', 'Freelance', 'Investment', 'Business', 'Gift', 'Other Income'],
-  expense: ['Food', 'Transportation', 'Housing', 'Utilities', 'Healthcare', 'Entertainment', 'Shopping', 'Education', 'Insurance', 'Other Expense']
+  income: [
+    "Salary",
+    "Freelance",
+    "Investment",
+    "Business",
+    "Gift",
+    "Other Income",
+  ],
+  expense: [
+    "Food",
+    "Transportation",
+    "Housing",
+    "Utilities",
+    "Healthcare",
+    "Entertainment",
+    "Shopping",
+    "Education",
+    "Insurance",
+    "Other Expense",
+  ],
 };
 
-const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProps) => {
+const TransactionForm = ({
+  transaction,
+  onSubmit,
+  onClose,
+}: TransactionFormProps) => {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    amount: '',
-    category: '',
-    type: 'expense' as 'income' | 'expense',
-    description: ''
+    date: new Date().toISOString().split("T")[0],
+    amount: "",
+    category: "",
+    type: "expense" as "income" | "expense",
+    description: "",
   });
 
   useEffect(() => {
@@ -45,31 +78,60 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
         amount: transaction.amount.toString(),
         category: transaction.category,
         type: transaction.type,
-        description: transaction.description
+        description: transaction.description,
       });
     }
   }, [transaction]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const transactionData = {
       ...formData,
-      amount: parseFloat(formData.amount)
+      amount: parseFloat(formData.amount),
     };
 
-    if (transaction) {
-      onSubmit({ ...transactionData, id: transaction.id });
-    } else {
-      onSubmit(transactionData);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please log in to add transactions.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/expenses", {
+        method: transaction ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify(
+          transaction
+            ? { ...transactionData, id: transaction.id }
+            : transactionData
+        ),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        onSubmit(data); // Pass the saved transaction data back
+        onClose(); // Close the modal on success
+      } else {
+        console.error("Transaction save failed:", data.msg);
+        alert(data.msg || "Failed to save transaction.");
+      }
+    } catch (error) {
+      console.error("Transaction save error:", error);
+      alert("An error occurred while saving the transaction.");
     }
   };
 
-  const handleTypeChange = (type: 'income' | 'expense') => {
-    setFormData(prev => ({
+  const handleTypeChange = (type: "income" | "expense") => {
+    setFormData((prev) => ({
       ...prev,
       type,
-      category: '' // Reset category when type changes
+      category: "", // Reset category when type changes
     }));
   };
 
@@ -79,10 +141,14 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <DollarSign className="h-5 w-5 text-blue-600" />
-            <span>{transaction ? 'Edit Transaction' : 'Add New Transaction'}</span>
+            <span>
+              {transaction ? "Edit Transaction" : "Add New Transaction"}
+            </span>
           </DialogTitle>
           <DialogDescription>
-            {transaction ? 'Update your transaction details' : 'Record a new income or expense'}
+            {transaction
+              ? "Update your transaction details"
+              : "Record a new income or expense"}
           </DialogDescription>
         </DialogHeader>
 
@@ -93,7 +159,10 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Transaction Type</Label>
-                  <Select value={formData.type} onValueChange={handleTypeChange}>
+                  <Select
+                    value={formData.type}
+                    onValueChange={handleTypeChange}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -115,7 +184,12 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
                       step="0.01"
                       placeholder="0.00"
                       value={formData.amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          amount: e.target.value,
+                        }))
+                      }
                       className="pl-10"
                       required
                     />
@@ -132,7 +206,9 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                    }
                     className="pl-10"
                     required
                   />
@@ -144,12 +220,17 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
                 <Label>Category</Label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, category: value }))
+                    }
+                  >
                     <SelectTrigger className="pl-10">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories[formData.type].map(category => (
+                      {categories[formData.type].map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -168,7 +249,12 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
                     id="description"
                     placeholder="Add a description or note..."
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     className="pl-10 resize-none"
                     rows={3}
                   />
@@ -177,14 +263,23 @@ const TransactionForm = ({ transaction, onSubmit, onClose }: TransactionFormProp
 
               {/* Actions */}
               <div className="flex space-x-3 pt-4">
-                <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  className={`flex-1 ${formData.type === 'income' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                <Button
+                  type="submit"
+                  className={`flex-1 ${
+                    formData.type === "income"
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
-                  {transaction ? 'Update' : 'Add'} Transaction
+                  {transaction ? "Update" : "Add"} Transaction
                 </Button>
               </div>
             </form>

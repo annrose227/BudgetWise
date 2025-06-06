@@ -1,12 +1,23 @@
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Lock, Mail } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Shield, Lock, Mail } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,24 +26,72 @@ interface AuthModalProps {
 }
 
 const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [activeTab, setActiveTab] = useState("login"); // Add state for active tab
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - in real app, this would call your auth service
-    if (email && password) {
-      onLogin();
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        onLogin(); // Close modal and potentially redirect
+      } else {
+        // Handle login errors (e.g., invalid credentials)
+        console.error("Login failed:", data.msg);
+        alert(data.msg || "Login failed"); // Display error message to user
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("An error occurred during login.");
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - in real app, this would create a new user
-    if (email && password && password === confirmPassword && name) {
-      onLogin();
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Sign in Now"); // Show alert
+        setActiveTab("login"); // Switch to login tab
+        // Clear form fields after successful signup
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setName("");
+      } else {
+        // Handle signup errors (e.g., user already exists)
+        console.error("Signup failed:", data.msg);
+        alert(data.msg || "Signup failed"); // Display error message to user
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert("An error occurred during signup.");
     }
   };
 
@@ -45,21 +104,25 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
             <span>Secure Access</span>
           </DialogTitle>
           <DialogDescription>
-            Sign in to your account or create a new one to start tracking your finances.
+            Sign in to your account or create a new one to start tracking your
+            finances.
           </DialogDescription>
         </DialogHeader>
-        
-        <Tabs defaultValue="login" className="w-full">
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {" "}
+          {/* Use activeTab state */}
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
-          
           <TabsContent value="login">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Welcome Back</CardTitle>
-                <CardDescription>Enter your credentials to access your account</CardDescription>
+                <CardDescription>
+                  Enter your credentials to access your account
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -78,7 +141,7 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
@@ -94,24 +157,28 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       />
                     </div>
                   </div>
-                  
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
                     Sign In
                   </Button>
                 </form>
-                
+
                 <div className="text-center text-sm text-gray-500">
                   Demo: Use any email and password to login
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-          
           <TabsContent value="signup">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Create Account</CardTitle>
-                <CardDescription>Start your financial journey with us</CardDescription>
+                <CardDescription>
+                  Start your financial journey with us
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <form onSubmit={handleSignup} className="space-y-4">
@@ -126,7 +193,7 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <div className="relative">
@@ -142,7 +209,7 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
@@ -158,7 +225,7 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm Password</Label>
                     <div className="relative">
@@ -174,8 +241,11 @@ const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                       />
                     </div>
                   </div>
-                  
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
                     Create Account
                   </Button>
                 </form>
