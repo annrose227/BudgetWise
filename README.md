@@ -45,14 +45,17 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-  ##To Open the project
+
+
+
+## To Open the project
   - clone the repo
   - npm i
   - npm run dev
   - cd backend
   - node server.js
 
-##How to download the report
+## How to download the report
 1. Go to the "Bank Comparison" tab in the application.
 2. Upload a CSV bank statement using the "Choose CSV File" button.
 3. Click the "Compare Transactions" button.
