@@ -32,7 +32,5 @@ app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Export the Express app for Vercel
+module.exports = app;
